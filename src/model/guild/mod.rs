@@ -47,6 +47,15 @@ use crate::builder::{
 };
 #[cfg(all(feature = "cache", feature = "model"))]
 use crate::cache::Cache;
+#[cfg(feature = "collector")]
+use crate::client::bridge::gateway::ShardMessenger;
+#[cfg(feature = "collector")]
+use crate::collector::{
+    CollectReaction,
+    CollectReply,
+    MessageCollectorBuilder,
+    ReactionCollectorBuilder,
+};
 #[cfg(feature = "model")]
 use crate::constants::LARGE_THRESHOLD;
 #[cfg(feature = "model")]
@@ -1507,10 +1516,9 @@ impl Guild {
 
         if sorted {
             members.sort_by(|a, b| closest_to_origin(prefix, &a.1[..], &b.1[..]));
-            members
-        } else {
-            members
         }
+
+        members
     }
 
     /// Retrieves all [`Member`] containing a given [`String`] as
@@ -1576,10 +1584,9 @@ impl Guild {
 
         if sorted {
             members.sort_by(|a, b| closest_to_origin(substring, &a.1[..], &b.1[..]));
-            members
-        } else {
-            members
         }
+
+        members
     }
 
     /// Retrieves a tuple of [`Member`]s containing a given [`String`] in
@@ -1613,22 +1620,18 @@ impl Guild {
     ) -> Vec<(&Member, String)> {
         let mut members = futures::stream::iter(self.members.values())
             .filter_map(|member| async move {
-                if case_sensitive {
-                    let name = &member.user.name;
+                let name = &member.user.name;
 
+                if case_sensitive {
                     if name.contains(substring) {
                         Some((member, name.to_string()))
                     } else {
                         None
                     }
+                } else if contains_case_insensitive(name, substring) {
+                    Some((member, name.to_string()))
                 } else {
-                    let name = &member.user.name;
-
-                    if contains_case_insensitive(name, substring) {
-                        Some((member, name.to_string()))
-                    } else {
-                        None
-                    }
+                    None
                 }
             })
             .collect::<Vec<(&Member, String)>>()
@@ -1636,10 +1639,9 @@ impl Guild {
 
         if sorted {
             members.sort_by(|a, b| closest_to_origin(substring, &a.1[..], &b.1[..]));
-            members
-        } else {
-            members
         }
+
+        members
     }
 
     /// Retrieves all [`Member`] containing a given [`String`] in
@@ -1694,10 +1696,9 @@ impl Guild {
 
         if sorted {
             members.sort_by(|a, b| closest_to_origin(substring, &a.1[..], &b.1[..]));
-            members
-        } else {
-            members
         }
+
+        members
     }
 
     /// Calculate a [`Member`]'s permissions in the guild.
@@ -2236,6 +2237,46 @@ impl Guild {
     /// ```
     pub fn role_by_name(&self, role_name: &str) -> Option<&Role> {
         self.roles.values().find(|role| role_name == role.name)
+    }
+
+    /// Returns a future that will await one message sent in this guild.
+    #[cfg(feature = "collector")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "collector")))]
+    pub fn await_reply<'a>(
+        &self,
+        shard_messenger: &'a impl AsRef<ShardMessenger>,
+    ) -> CollectReply<'a> {
+        CollectReply::new(shard_messenger).guild_id(self.id.0)
+    }
+
+    /// Returns a stream builder which can be awaited to obtain a stream of messages in this guild.
+    #[cfg(feature = "collector")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "collector")))]
+    pub fn await_replies<'a>(
+        &self,
+        shard_messenger: &'a impl AsRef<ShardMessenger>,
+    ) -> MessageCollectorBuilder<'a> {
+        MessageCollectorBuilder::new(shard_messenger).guild_id(self.id.0)
+    }
+
+    /// Await a single reaction in this guild.
+    #[cfg(feature = "collector")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "collector")))]
+    pub fn await_reaction<'a>(
+        &self,
+        shard_messenger: &'a impl AsRef<ShardMessenger>,
+    ) -> CollectReaction<'a> {
+        CollectReaction::new(shard_messenger).guild_id(self.id.0)
+    }
+
+    /// Returns a stream builder which can be awaited to obtain a stream of reactions sent in this guild.
+    #[cfg(feature = "collector")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "collector")))]
+    pub fn await_reactions<'a>(
+        &self,
+        shard_messenger: &'a impl AsRef<ShardMessenger>,
+    ) -> ReactionCollectorBuilder<'a> {
+        ReactionCollectorBuilder::new(shard_messenger).guild_id(self.id.0)
     }
 }
 
