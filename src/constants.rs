@@ -16,14 +16,12 @@ pub const MESSAGE_CODE_LIMIT: usize = 2000;
 /// The maximum number of members the bot can fetch at once
 pub const MEMBER_FETCH_LIMIT: u64 = 1000;
 
+pub const BROWSER_VERSION: &'static str = "90.0.4430.212";
+
 /// The [UserAgent] sent along with every request.
 ///
 /// [UserAgent]: ::reqwest::header::USER_AGENT
-pub const USER_AGENT: &str = concat!(
-    "DiscordBot (https://github.com/serenity-rs/serenity, ",
-    env!("CARGO_PKG_VERSION"),
-    ")"
-);
+pub const USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36";
 
 /// List of messages Discord shows on member join.
 #[allow(clippy::non_ascii_literal)] // allow for discord join messages

@@ -101,10 +101,7 @@ impl<'a> HttpBuilder<'a> {
     pub fn token(mut self, token: impl AsRef<str>) -> Self {
         let token = token.as_ref().trim();
 
-        let token =
-            if token.starts_with("Bot ") { token.to_string() } else { format!("Bot {}", token) };
-
-        self.token = Some(token);
+        self.token = Some(token.to_string());
 
         self
     }
@@ -264,11 +261,7 @@ impl Http {
         let builder = configure_client_backend(Client::builder());
         let built = builder.build().expect("Cannot build reqwest::Client");
 
-        let token = if token.trim().starts_with("Bot ") {
-            token.to_string()
-        } else {
-            format!("Bot {}", token)
-        };
+        let token = token.to_string();
 
         Self::new(Arc::new(built), &token)
     }

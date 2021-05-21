@@ -1,3 +1,5 @@
+#![allow(warnings)]
+
 //! Serenity is a Rust library for the Discord API.
 //!
 //! View the [examples] on how to make and structure a bot.

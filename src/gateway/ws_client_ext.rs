@@ -103,20 +103,59 @@ impl WebSocketGatewayClientExt for WsStream {
     ) -> Result<()> {
         debug!("[Shard {:?}] Identifying", shard_info);
 
+
+        /* {
+            "op":2,
+            "d": {
+                "token":"",
+                "capabilities":61,
+                "properties": {
+                    "os":"Linux",
+                    "browser":"Chrome",
+                    "device":"",
+                    "system_locale":"en-US",
+                    "browser_user_agent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36",
+                    "browser_version":"90.0.4430.212",
+                    "os_version":"",
+                    "referrer":"",
+                    "referring_domain":"",
+                    "referrer_current":"",
+                    "referring_domain_current":"",
+                    "release_channel":"stable",
+                    "client_build_number":85039,
+                    "client_event_source":null},
+                    "presence": {
+                        "status":"online",
+                        "since":0,
+                        "activities":[],
+                        "afk":false},
+                        "compress":false,
+                        "client_state": {
+                            "guild_hashes":{},
+                            "highest_last_message_id":"0",
+                            "read_state_version":0,
+                            "user_guild_settings_version":-1
+                        }
+                    }
+                }
+        */
         self.send_json(&json!({
             "op": OpCode::Identify.num(),
             "d": {
-                "compress": true,
-                "large_threshold": constants::LARGE_THRESHOLD,
-                "shard": shard_info,
                 "token": token,
-                "intents": intents,
-                "v": constants::GATEWAY_VERSION,
+                "capabilities": 61,
                 "properties": {
-                    "$browser": "serenity",
-                    "$device": "serenity",
-                    "$os": consts::OS,
+                    "os": "Linux",
+                    "browser": "Chrome",
+                    "device": "",
+                    "system_locale":"en-US",
+                    "browser_user_agent": constants::USER_AGENT,
+                    "browser_version": constants::BROWSER_VERSION,
+                    "referrer":"",
+                    "referring_domain":""
                 },
+                "compress": true,
+                "large_threshold": constants::LARGE_THRESHOLD
             },
         }))
         .await
