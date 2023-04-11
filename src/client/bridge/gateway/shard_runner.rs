@@ -1,10 +1,9 @@
-use std::{borrow::Cow, sync::Arc};
+use std::borrow::Cow;
+use std::sync::Arc;
 
-use async_tungstenite::tungstenite::{
-    self,
-    error::Error as TungsteniteError,
-    protocol::frame::CloseFrame,
-};
+use async_tungstenite::tungstenite;
+use async_tungstenite::tungstenite::error::Error as TungsteniteError;
+use async_tungstenite::tungstenite::protocol::frame::CloseFrame;
 use futures::channel::mpsc::{self, UnboundedReceiver as Receiver, UnboundedSender as Sender};
 use futures::{SinkExt, StreamExt};
 use serde::Deserialize;
@@ -19,12 +18,22 @@ use crate::client::bridge::voice::VoiceGatewayManager;
 use crate::client::dispatch::{dispatch, DispatchEvent};
 use crate::client::{EventHandler, RawEventHandler};
 #[cfg(feature = "collector")]
-use crate::collector::{MessageFilter, ReactionAction, ReactionFilter};
+use crate::collector::{
+    ComponentInteractionFilter,
+    EventFilter,
+    LazyArc,
+    LazyReactionAction,
+    MessageFilter,
+    ModalInteractionFilter,
+    ReactionFilter,
+};
 #[cfg(feature = "framework")]
 use crate::framework::Framework;
 use crate::gateway::{GatewayError, InterMessage, ReconnectType, Shard, ShardAction};
 use crate::internal::prelude::*;
 use crate::internal::ws_impl::{ReceiverExt, SenderExt};
+#[cfg(feature = "collector")]
+use crate::model::application::interaction::Interaction;
 use crate::model::event::{Event, GatewayEvent};
 use crate::CacheAndHttp;
 
@@ -34,7 +43,7 @@ pub struct ShardRunner {
     event_handler: Option<Arc<dyn EventHandler>>,
     raw_event_handler: Option<Arc<dyn RawEventHandler>>,
     #[cfg(feature = "framework")]
-    framework: Arc<Box<dyn Framework + Send + Sync>>,
+    framework: Arc<dyn Framework + Send + Sync>,
     manager_tx: Sender<ShardManagerMessage>,
     // channel to receive messages from the shard manager and dispatches
     runner_rx: Receiver<InterMessage>,
@@ -45,9 +54,15 @@ pub struct ShardRunner {
     voice_manager: Option<Arc<dyn VoiceGatewayManager + Send + Sync + 'static>>,
     cache_and_http: Arc<CacheAndHttp>,
     #[cfg(feature = "collector")]
+    event_filters: Vec<EventFilter>,
+    #[cfg(feature = "collector")]
     message_filters: Vec<MessageFilter>,
     #[cfg(feature = "collector")]
     reaction_filters: Vec<ReactionFilter>,
+    #[cfg(feature = "collector")]
+    component_interaction_filters: Vec<ComponentInteractionFilter>,
+    #[cfg(feature = "collector")]
+    modal_interaction_filters: Vec<ModalInteractionFilter>,
 }
 
 impl ShardRunner {
@@ -69,9 +84,15 @@ impl ShardRunner {
             voice_manager: opt.voice_manager,
             cache_and_http: opt.cache_and_http,
             #[cfg(feature = "collector")]
+            event_filters: Vec::new(),
+            #[cfg(feature = "collector")]
             message_filters: Vec::new(),
             #[cfg(feature = "collector")]
             reaction_filters: Vec::new(),
+            #[cfg(feature = "collector")]
+            component_interaction_filters: vec![],
+            #[cfg(feature = "collector")]
+            modal_interaction_filters: vec![],
         }
     }
 
@@ -182,53 +203,44 @@ impl ShardRunner {
     /// is accepted by them.
     #[cfg(feature = "collector")]
     fn handle_filters(&mut self, event: &Event) {
-        /// Unlike [`Vec`]'s `retain`, allows mutable references in `f`.
-        fn retain<T, F>(vec: &mut Vec<T>, mut f: F)
-        where
-            F: FnMut(&mut T) -> bool,
-        {
-            let len = vec.len();
-            let mut del = 0;
-            {
-                let v = &mut **vec;
+        use crate::utils::backports::retain_mut;
 
-                for i in 0..len {
-                    if !f(&mut v[i]) {
-                        del += 1;
-                    } else if del > 0 {
-                        v.swap(i - del, i);
-                    }
+        match &event {
+            Event::MessageCreate(ref msg_event) => {
+                let mut msg = LazyArc::new(&msg_event.message);
+                retain_mut(&mut self.message_filters, |f| f.send_message(&mut msg));
+            },
+            Event::ReactionAdd(ref reaction_event) => {
+                let mut reaction = LazyReactionAction::new(&reaction_event.reaction, true);
+                retain_mut(&mut self.reaction_filters, |f| f.send_reaction(&mut reaction));
+            },
+            Event::ReactionRemove(ref reaction_event) => {
+                let mut reaction = LazyReactionAction::new(&reaction_event.reaction, false);
+                retain_mut(&mut self.reaction_filters, |f| f.send_reaction(&mut reaction));
+            },
+            #[cfg(feature = "collector")]
+            Event::InteractionCreate(ref interaction_event) => {
+                match &interaction_event.interaction {
+                    Interaction::MessageComponent(interaction) => {
+                        let mut interaction = LazyArc::new(interaction);
+                        retain_mut(&mut self.component_interaction_filters, |f| {
+                            f.send_interaction(&mut interaction)
+                        });
+                    },
+                    Interaction::ModalSubmit(interaction) => {
+                        let mut interaction = LazyArc::new(interaction);
+                        retain_mut(&mut self.modal_interaction_filters, |f| {
+                            f.send_interaction(&mut interaction)
+                        });
+                    },
+                    _ => (),
                 }
-            }
-
-            if del > 0 {
-                vec.truncate(len - del);
-            }
+            },
+            _ => {},
         }
 
-        // Avoid the clone if there is no message filter.
-        if !self.message_filters.is_empty() {
-            if let Event::MessageCreate(ref msg_event) = &event {
-                let msg = Arc::new(msg_event.message.clone());
-
-                retain(&mut self.message_filters, |f| f.send_message(&msg));
-            }
-        }
-
-        // Avoid the clone if there is no reacton filter.
-        if !self.reaction_filters.is_empty() {
-            let reaction = Arc::new(match &event {
-                Event::ReactionAdd(ref reaction_event) => {
-                    ReactionAction::Added(Arc::new(reaction_event.reaction.clone()))
-                },
-                Event::ReactionRemove(ref reaction_event) => {
-                    ReactionAction::Removed(Arc::new(reaction_event.reaction.clone()))
-                },
-                _ => return,
-            });
-
-            retain(&mut self.reaction_filters, |f| f.send_reaction(&reaction));
-        }
+        let mut event = LazyArc::new(event);
+        retain_mut(&mut self.event_filters, |f| f.send_event(&mut event));
     }
 
     /// Clones the internal copy of the Sender to the shard runner.
@@ -273,15 +285,15 @@ impl ShardRunner {
         }
 
         // Send a Close Frame to Discord, which allows a bot to "log off"
-        #[allow(clippy::let_underscore_must_use)]
-        let _ = self
-            .shard
-            .client
-            .close(Some(CloseFrame {
-                code: close_code.into(),
-                reason: Cow::from(""),
-            }))
-            .await;
+        drop(
+            self.shard
+                .client
+                .close(Some(CloseFrame {
+                    code: close_code.into(),
+                    reason: Cow::from(""),
+                }))
+                .await,
+        );
 
         // In return, we wait for either a Close Frame response, or an error, after which this WS is deemed
         // disconnected from Discord.
@@ -350,26 +362,22 @@ impl ShardRunner {
 
                     true
                 },
-                ShardClientMessage::Manager(ShardManagerMessage::ShardUpdate {
-                    ..
-                }) => {
+                ShardClientMessage::Manager(
+                    ShardManagerMessage::ShardUpdate {
+                        ..
+                    }
+                    | ShardManagerMessage::ShutdownInitiated
+                    | ShardManagerMessage::ShutdownFinished(_),
+                ) => {
                     // nb: not sent here
 
                     true
                 },
-                ShardClientMessage::Manager(ShardManagerMessage::ShutdownInitiated) => {
-                    // nb: not sent here
-
-                    true
-                },
-                ShardClientMessage::Manager(ShardManagerMessage::ShutdownFinished(_)) => {
-                    // nb: not sent here
-
-                    true
-                },
-                ShardClientMessage::Manager(ShardManagerMessage::ShardDisallowedGatewayIntents)
-                | ShardClientMessage::Manager(ShardManagerMessage::ShardInvalidAuthentication)
-                | ShardClientMessage::Manager(ShardManagerMessage::ShardInvalidGatewayIntents) => {
+                ShardClientMessage::Manager(
+                    ShardManagerMessage::ShardDisallowedGatewayIntents
+                    | ShardManagerMessage::ShardInvalidAuthentication
+                    | ShardManagerMessage::ShardInvalidGatewayIntents,
+                ) => {
                     // These variants should never be received.
                     warn!("[ShardRunner {:?}] Received a ShardError?", self.shard.shard_info(),);
 
@@ -384,7 +392,7 @@ impl ShardRunner {
                     self.shard.chunk_guild(guild_id, limit, filter, nonce.as_deref()).await.is_ok()
                 },
                 ShardClientMessage::Runner(ShardRunnerMessage::Close(code, reason)) => {
-                    let reason = reason.unwrap_or_else(String::new);
+                    let reason = reason.unwrap_or_default();
                     let close = CloseFrame {
                         code: code.into(),
                         reason: Cow::from(reason),
@@ -423,6 +431,12 @@ impl ShardRunner {
                     self.shard.update_presence().await.is_ok()
                 },
                 #[cfg(feature = "collector")]
+                ShardClientMessage::Runner(ShardRunnerMessage::SetEventFilter(collector)) => {
+                    self.event_filters.push(collector);
+
+                    true
+                },
+                #[cfg(feature = "collector")]
                 ShardClientMessage::Runner(ShardRunnerMessage::SetMessageFilter(collector)) => {
                     self.message_filters.push(collector);
 
@@ -431,6 +445,22 @@ impl ShardRunner {
                 #[cfg(feature = "collector")]
                 ShardClientMessage::Runner(ShardRunnerMessage::SetReactionFilter(collector)) => {
                     self.reaction_filters.push(collector);
+
+                    true
+                },
+                #[cfg(feature = "collector")]
+                ShardClientMessage::Runner(ShardRunnerMessage::SetComponentInteractionFilter(
+                    collector,
+                )) => {
+                    self.component_interaction_filters.push(collector);
+
+                    true
+                },
+                #[cfg(feature = "collector")]
+                ShardClientMessage::Runner(ShardRunnerMessage::SetModalInteractionFilter(
+                    collector,
+                )) => {
+                    self.modal_interaction_filters.push(collector);
 
                     true
                 },
@@ -458,7 +488,7 @@ impl ShardRunner {
                     }
                 },
                 Event::VoiceStateUpdate(ref event) => {
-                    if let Some(guild_id) = event.guild_id {
+                    if let Some(guild_id) = event.voice_state.guild_id {
                         voice_manager.state_update(guild_id, &event.voice_state).await;
                     }
                 },
@@ -491,9 +521,7 @@ impl ShardRunner {
                         self.shard.shard_info(),
                     );
 
-                    #[allow(clippy::let_underscore_must_use)]
-                    let _ = self.request_restart().await;
-
+                    drop(self.request_restart().await);
                     return Ok(false);
                 },
                 Err(_) => break,
@@ -593,7 +621,7 @@ impl ShardRunner {
         #[cfg(feature = "voice")]
         {
             if let Ok(GatewayEvent::Dispatch(_, ref event)) = event {
-                self.handle_voice_event(&event).await;
+                self.handle_voice_event(event).await;
             }
         }
 
@@ -627,12 +655,11 @@ impl ShardRunner {
 
     #[instrument(skip(self))]
     fn update_manager(&self) {
-        #[allow(clippy::let_underscore_must_use)]
-        let _ = self.manager_tx.unbounded_send(ShardManagerMessage::ShardUpdate {
+        drop(self.manager_tx.unbounded_send(ShardManagerMessage::ShardUpdate {
             id: ShardId(self.shard.shard_info()[0]),
             latency: self.shard.latency(),
             stage: self.shard.stage(),
-        });
+        }));
     }
 }
 
@@ -642,7 +669,7 @@ pub struct ShardRunnerOptions {
     pub event_handler: Option<Arc<dyn EventHandler>>,
     pub raw_event_handler: Option<Arc<dyn RawEventHandler>>,
     #[cfg(feature = "framework")]
-    pub framework: Arc<Box<dyn Framework + Send + Sync>>,
+    pub framework: Arc<dyn Framework + Send + Sync>,
     pub manager_tx: Sender<ShardManagerMessage>,
     pub shard: Shard,
     #[cfg(feature = "voice")]

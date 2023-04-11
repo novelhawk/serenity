@@ -13,14 +13,14 @@ pub fn deserialize_errors<'de, D: Deserializer<'de>>(
         return Ok(vec![]);
     }
 
-    let mut errors: Vec<DiscordJsonSingleError> = vec![];
+    let mut errors = Vec::new();
 
-    loop_errors(map, &mut errors, &mut Vec::new());
+    loop_errors(&map, &mut errors, &[]);
 
     Ok(errors)
 }
 
-fn loop_errors(value: Value, errors: &mut Vec<DiscordJsonSingleError>, path: &mut Vec<String>) {
+fn loop_errors(value: &Value, errors: &mut Vec<DiscordJsonSingleError>, path: &[String]) {
     for (key, looped) in value.as_object().expect("expected object").iter() {
         let object = looped.as_object().expect("expected object");
         if object.contains_key("_errors") {
@@ -29,10 +29,11 @@ fn loop_errors(value: Value, errors: &mut Vec<DiscordJsonSingleError>, path: &mu
                 .expect("expected _errors")
                 .as_array()
                 .expect("expected array")
-                .to_owned();
+                .clone();
+
             for error in found_errors {
                 let error_object = error.as_object().expect("expected object");
-                let mut object_path = path.clone();
+                let mut object_path = path.to_owned();
 
                 object_path.push(key.to_string());
 
@@ -54,8 +55,10 @@ fn loop_errors(value: Value, errors: &mut Vec<DiscordJsonSingleError>, path: &mu
             }
             continue;
         }
-        path.push(key.to_string());
 
-        loop_errors(looped.clone(), errors, path);
+        let mut new_path = path.to_owned();
+        new_path.push(key.to_string());
+
+        loop_errors(looped, errors, &new_path);
     }
 }

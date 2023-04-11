@@ -30,7 +30,7 @@ impl CommandMap {
         let mut map = Self::default();
 
         for cmd in cmds {
-            let sub_map = Arc::new(Self::new(&cmd.options.sub_commands, conf));
+            let sub_map = Arc::new(Self::new(cmd.options.sub_commands, conf));
 
             for name in cmd.options.names {
                 let len = name.chars().count();
@@ -38,7 +38,7 @@ impl CommandMap {
                 map.max_length = std::cmp::max(len, map.max_length);
 
                 let name =
-                    if conf.case_insensitive { name.to_lowercase() } else { name.to_string() };
+                    if conf.case_insensitive { name.to_lowercase() } else { (*name).to_string() };
 
                 map.cmds.insert(name, (*cmd, sub_map.clone()));
             }
@@ -84,8 +84,8 @@ impl GroupMap {
         let mut map = Self::default();
 
         for group in groups {
-            let subgroups_map = Arc::new(Self::new(&group.options.sub_groups, conf));
-            let commands_map = Arc::new(CommandMap::new(&group.options.commands, conf));
+            let subgroups_map = Arc::new(Self::new(group.options.sub_groups, conf));
+            let commands_map = Arc::new(CommandMap::new(group.options.commands, conf));
 
             for prefix in group.options.prefixes {
                 let len = prefix.chars().count();
