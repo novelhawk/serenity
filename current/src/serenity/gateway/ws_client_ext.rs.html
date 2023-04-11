@@ -216,6 +216,11 @@
 <span id="210">210</span>
 <span id="211">211</span>
 <span id="212">212</span>
+<span id="213">213</span>
+<span id="214">214</span>
+<span id="215">215</span>
+<span id="216">216</span>
+<span id="217">217</span>
 </pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">std::env::consts</span>;
 <span class="kw">use</span> <span class="ident">std::time::SystemTime</span>;
 
@@ -321,56 +326,61 @@
     ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
         <span class="macro">debug!</span>(<span class="string">&quot;[Shard {:?}] Identifying&quot;</span>, <span class="ident">shard_info</span>);
 
+        <span class="comment">// {</span>
+        <span class="comment">//     &quot;op&quot;: 2,</span>
+        <span class="comment">//     &quot;d&quot;: {</span>
+        <span class="comment">//         &quot;token&quot;: &quot;NzQ1NDUzMjgzMzgwMDM1NjI1.Gjshyi.-e5DwNcufEj7EUATJlcD_NLFT9YkSmlIT-IfwM&quot;,</span>
+        <span class="comment">//         &quot;capabilities&quot;: 8189,</span>
+        <span class="comment">//         &quot;properties&quot;: {</span>
+        <span class="comment">//             &quot;os&quot;: &quot;Windows&quot;,</span>
+        <span class="comment">//             &quot;browser&quot;: &quot;Chrome&quot;,</span>
+        <span class="comment">//             &quot;device&quot;: &quot;&quot;,</span>
+        <span class="comment">//             &quot;system_locale&quot;: &quot;it&quot;,</span>
+        <span class="comment">//             &quot;browser_user_agent&quot;: &quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36&quot;,</span>
+        <span class="comment">//             &quot;browser_version&quot;: &quot;112.0.0.0&quot;,</span>
+        <span class="comment">//             &quot;os_version&quot;: &quot;10&quot;,</span>
+        <span class="comment">//             &quot;referrer&quot;: &quot;&quot;,</span>
+        <span class="comment">//             &quot;referring_domain&quot;: &quot;&quot;,</span>
+        <span class="comment">//             &quot;referrer_current&quot;: &quot;&quot;,</span>
+        <span class="comment">//             &quot;referring_domain_current&quot;: &quot;&quot;,</span>
+        <span class="comment">//             &quot;release_channel&quot;: &quot;stable&quot;,</span>
+        <span class="comment">//             &quot;client_build_number&quot;: 187836,</span>
+        <span class="comment">//             &quot;client_event_source&quot;: null</span>
+        <span class="comment">//         },</span>
+        <span class="comment">//         &quot;presence&quot;: {</span>
+        <span class="comment">//             &quot;status&quot;: &quot;unknown&quot;,</span>
+        <span class="comment">//             &quot;since&quot;: 0,</span>
+        <span class="comment">//             &quot;activities&quot;: [],</span>
+        <span class="comment">//             &quot;afk&quot;: false</span>
+        <span class="comment">//         },</span>
+        <span class="comment">//         &quot;compress&quot;: false,</span>
+        <span class="comment">//         &quot;client_state&quot;: {</span>
+        <span class="comment">//             &quot;guild_versions&quot;: {},</span>
+        <span class="comment">//             &quot;highest_last_message_id&quot;: &quot;0&quot;,</span>
+        <span class="comment">//             &quot;read_state_version&quot;: 0,</span>
+        <span class="comment">//             &quot;user_guild_settings_version&quot;: -1,</span>
+        <span class="comment">//             &quot;user_settings_version&quot;: -1,</span>
+        <span class="comment">//             &quot;private_channels_version&quot;: &quot;0&quot;,</span>
+        <span class="comment">//             &quot;api_code_version&quot;: 0</span>
+        <span class="comment">//         }</span>
+        <span class="comment">//     }</span>
+        <span class="comment">// }</span>
 
-        <span class="comment">/* {
-            &quot;op&quot;:2,
-            &quot;d&quot;: {
-                &quot;token&quot;:&quot;&quot;,
-                &quot;capabilities&quot;:61,
-                &quot;properties&quot;: {
-                    &quot;os&quot;:&quot;Linux&quot;,
-                    &quot;browser&quot;:&quot;Chrome&quot;,
-                    &quot;device&quot;:&quot;&quot;,
-                    &quot;system_locale&quot;:&quot;en-US&quot;,
-                    &quot;browser_user_agent&quot;:&quot;Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36&quot;,
-                    &quot;browser_version&quot;:&quot;90.0.4430.212&quot;,
-                    &quot;os_version&quot;:&quot;&quot;,
-                    &quot;referrer&quot;:&quot;&quot;,
-                    &quot;referring_domain&quot;:&quot;&quot;,
-                    &quot;referrer_current&quot;:&quot;&quot;,
-                    &quot;referring_domain_current&quot;:&quot;&quot;,
-                    &quot;release_channel&quot;:&quot;stable&quot;,
-                    &quot;client_build_number&quot;:85039,
-                    &quot;client_event_source&quot;:null},
-                    &quot;presence&quot;: {
-                        &quot;status&quot;:&quot;online&quot;,
-                        &quot;since&quot;:0,
-                        &quot;activities&quot;:[],
-                        &quot;afk&quot;:false},
-                        &quot;compress&quot;:false,
-                        &quot;client_state&quot;: {
-                            &quot;guild_hashes&quot;:{},
-                            &quot;highest_last_message_id&quot;:&quot;0&quot;,
-                            &quot;read_state_version&quot;:0,
-                            &quot;user_guild_settings_version&quot;:-1
-                        }
-                    }
-                }
-        */</span>
         <span class="self">self</span>.<span class="ident">send_json</span>(<span class="kw-2">&amp;</span><span class="macro">json!</span>({
             <span class="string">&quot;op&quot;</span>: <span class="ident">OpCode::Identify</span>.<span class="ident">num</span>(),
             <span class="string">&quot;d&quot;</span>: {
                 <span class="string">&quot;token&quot;</span>: <span class="ident">token</span>,
-                <span class="string">&quot;capabilities&quot;</span>: <span class="number">61</span>,
+                <span class="string">&quot;capabilities&quot;</span>: <span class="number">8189</span>,
                 <span class="string">&quot;properties&quot;</span>: {
-                    <span class="string">&quot;os&quot;</span>: <span class="string">&quot;Linux&quot;</span>,
+                    <span class="string">&quot;os&quot;</span>: <span class="string">&quot;Windows&quot;</span>,
                     <span class="string">&quot;browser&quot;</span>: <span class="string">&quot;Chrome&quot;</span>,
                     <span class="string">&quot;device&quot;</span>: <span class="string">&quot;&quot;</span>,
                     <span class="string">&quot;system_locale&quot;</span>:<span class="string">&quot;en-US&quot;</span>,
                     <span class="string">&quot;browser_user_agent&quot;</span>: <span class="ident">constants::USER_AGENT</span>,
                     <span class="string">&quot;browser_version&quot;</span>: <span class="ident">constants::BROWSER_VERSION</span>,
                     <span class="string">&quot;referrer&quot;</span>:<span class="string">&quot;&quot;</span>,
-                    <span class="string">&quot;referring_domain&quot;</span>:<span class="string">&quot;&quot;</span>
+                    <span class="string">&quot;referring_domain&quot;</span>:<span class="string">&quot;&quot;</span>,
+                    <span class="string">&quot;release_channel&quot;</span>: <span class="string">&quot;stable&quot;</span>,
                 },
                 <span class="string">&quot;compress&quot;</span>: <span class="bool-val">true</span>,
                 <span class="string">&quot;large_threshold&quot;</span>: <span class="ident">constants::LARGE_THRESHOLD</span>
