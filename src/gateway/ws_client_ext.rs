@@ -155,6 +155,7 @@ impl WebSocketGatewayClientExt for WsStream {
                     "system_locale":"en-US",
                     "browser_user_agent": constants::USER_AGENT,
                     "browser_version": constants::BROWSER_VERSION,
+                    "os_version": "10",
                     "referrer":"",
                     "referring_domain":"",
                     "release_channel": "stable",
