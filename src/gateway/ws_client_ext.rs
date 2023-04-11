@@ -103,56 +103,61 @@ impl WebSocketGatewayClientExt for WsStream {
     ) -> Result<()> {
         debug!("[Shard {:?}] Identifying", shard_info);
 
+        // {
+        //     "op": 2,
+        //     "d": {
+        //         "token": "",
+        //         "capabilities": 8189,
+        //         "properties": {
+        //             "os": "Windows",
+        //             "browser": "Chrome",
+        //             "device": "",
+        //             "system_locale": "it",
+        //             "browser_user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36",
+        //             "browser_version": "112.0.0.0",
+        //             "os_version": "10",
+        //             "referrer": "",
+        //             "referring_domain": "",
+        //             "referrer_current": "",
+        //             "referring_domain_current": "",
+        //             "release_channel": "stable",
+        //             "client_build_number": 187836,
+        //             "client_event_source": null
+        //         },
+        //         "presence": {
+        //             "status": "unknown",
+        //             "since": 0,
+        //             "activities": [],
+        //             "afk": false
+        //         },
+        //         "compress": false,
+        //         "client_state": {
+        //             "guild_versions": {},
+        //             "highest_last_message_id": "0",
+        //             "read_state_version": 0,
+        //             "user_guild_settings_version": -1,
+        //             "user_settings_version": -1,
+        //             "private_channels_version": "0",
+        //             "api_code_version": 0
+        //         }
+        //     }
+        // }
 
-        /* {
-            "op":2,
-            "d": {
-                "token":"",
-                "capabilities":61,
-                "properties": {
-                    "os":"Linux",
-                    "browser":"Chrome",
-                    "device":"",
-                    "system_locale":"en-US",
-                    "browser_user_agent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36",
-                    "browser_version":"90.0.4430.212",
-                    "os_version":"",
-                    "referrer":"",
-                    "referring_domain":"",
-                    "referrer_current":"",
-                    "referring_domain_current":"",
-                    "release_channel":"stable",
-                    "client_build_number":85039,
-                    "client_event_source":null},
-                    "presence": {
-                        "status":"online",
-                        "since":0,
-                        "activities":[],
-                        "afk":false},
-                        "compress":false,
-                        "client_state": {
-                            "guild_hashes":{},
-                            "highest_last_message_id":"0",
-                            "read_state_version":0,
-                            "user_guild_settings_version":-1
-                        }
-                    }
-                }
-        */
         self.send_json(&json!({
             "op": OpCode::Identify.num(),
             "d": {
                 "token": token,
-                "capabilities": 61,
+                "capabilities": 8189,
                 "properties": {
-                    "os": "Linux",
+                    "os": "Windows",
                     "browser": "Chrome",
                     "device": "",
                     "system_locale":"en-US",
                     "browser_user_agent": constants::USER_AGENT,
                     "browser_version": constants::BROWSER_VERSION,
                     "referrer":"",
-                    "referring_domain":""
+                    "referring_domain":"",
+                    "release_channel": "stable",
                 },
                 "compress": true,
                 "large_threshold": constants::LARGE_THRESHOLD

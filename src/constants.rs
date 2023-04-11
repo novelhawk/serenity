@@ -22,12 +22,12 @@ pub const MESSAGE_CODE_LIMIT: usize = 2000;
 /// The maximum number of members the bot can fetch at once
 pub const MEMBER_FETCH_LIMIT: u64 = 1000;
 
-pub const BROWSER_VERSION: &'static str = "90.0.4430.212";
+pub const BROWSER_VERSION: &'static str = "112.0.0.0";
 
 /// The [UserAgent] sent along with every request.
 ///
 /// [UserAgent]: ::reqwest::header::USER_AGENT
-pub const USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36";
+pub const USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36";
 
 /// List of messages Discord shows on member join.
 pub static JOIN_MESSAGES: &[&str] = &[
